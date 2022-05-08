@@ -40,7 +40,7 @@ class QqInfo extends React.Component<PropType,any> {
         if(_checkIsQq(this.props.qq)){
             this.setState({loading:true})
 
-            this.setState(await _getQqInfo(this.props.qq).catch((e)=>this.setState({httpError:e})))
+            this.setState(await _getQqInfo(this.props.qq).then(()=>this.setState({httpError:undefined})).catch((e)=>this.setState({httpError:e})))
             this.setState({loading:false})
         }
     }
