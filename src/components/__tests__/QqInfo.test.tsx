@@ -5,8 +5,16 @@ import {setupServer} from "msw/node";
 
 const server = setupServer(
     rest.get("https://api.uomg.com/api/qq.info",(req,res,ctx)=>{
-        req.params.qq = "790975658";
-        return res(ctx.json({name:"Jack",qlogo:""}))
+        const qq =req.url.searchParams.get('qq');
+
+        if (qq == "790975658"){
+            return res(ctx.json({name:"Jack",qlogo:""}))
+        }else{
+            return res(
+                ctx.status(301),
+                ctx.set('Content-Type', 'application/json')
+            )
+        }
     })
 )
 
@@ -21,14 +29,21 @@ afterEach(()=>{
 })
 
 test('should render qq格式错误 when qq is not right',()=>{
-    const {getByText} = render(<QqInfo qq="aaa" />);
-    expect(getByText("qq格式错误")).toBeTruthy();
+    render(<QqInfo qq="aaa" />);
+    expect(screen.getByText("qq格式错误")).toBeTruthy();
 })
 
 test('should render loading before show the qqInfo of user',async ()=>{
     render(<QqInfo qq="790975658" />);
     const loadingElement = screen.getByTestId("loading");
     expect(loadingElement).toContainHTML('<img src="loading.gif" width="60" />');
-    const qqInfoElement = await waitFor(()=>screen.getByTestId("qqInfo"))
+    const qqInfoElement = await screen.findByTestId("qqInfo")
     expect(qqInfoElement).toHaveTextContent('Jack')
+})
+
+test('should render 请求错误 when request error',async ()=>{
+    render(<QqInfo qq="123123" />);
+    const httpElement = await screen.findByTestId("httpError")
+
+    expect(httpElement).toHaveTextContent('请求错误')
 })

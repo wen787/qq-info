@@ -19,7 +19,7 @@ class QqInfo extends React.Component<PropType,any> {
 
   constructor(props: PropType) {
     super(props);
-    this.state = {name: "",qlogo:"",loading: true,isQQ:_checkIsQq(props.qq)};
+    this.state = {name: "",qlogo:"",loading: true,isQQ:_checkIsQq(props.qq),httpError:undefined};
   }
 
   static defaultProps = {
@@ -28,7 +28,7 @@ class QqInfo extends React.Component<PropType,any> {
 
   async componentDidMount() {
       if(this.state.isQQ){
-          this.setState(await _getQqInfo(this.props.qq))
+          this.setState(await _getQqInfo(this.props.qq).catch((e)=>this.setState({httpError:e})))
           this.setState({loading:false})
       }
   }
@@ -39,7 +39,8 @@ class QqInfo extends React.Component<PropType,any> {
         this.setState({isQQ:_checkIsQq(this.props.qq)})
         if(_checkIsQq(this.props.qq)){
             this.setState({loading:true})
-            this.setState(await _getQqInfo(this.props.qq))
+
+            this.setState(await _getQqInfo(this.props.qq).catch((e)=>this.setState({httpError:e})))
             this.setState({loading:false})
         }
     }
@@ -59,7 +60,11 @@ class QqInfo extends React.Component<PropType,any> {
 
 
     if (!this.state.isQQ) {
-      return <div style={styleObj} className="qqInfoContainer">qq格式错误</div>
+       return <div style={styleObj} className="qqInfoContainer">qq格式错误</div>
+    }
+
+    if (this.state.httpError) {
+       return <div style={styleObj} className="qqInfoContainer" data-testid="httpError">{this.state.httpError}</div>
     }
     return (
           <div>
@@ -97,11 +102,15 @@ function _getQqInfo(qq:string):Promise<QqInfo> {
     httpRequest.open('GET', 'https://api.uomg.com/api/qq.info?qq='+qq, true);
     httpRequest.send();
     httpRequest.onreadystatechange = function () {
-        if (!(httpRequest.readyState == 4 && httpRequest.status == 200)) {
-            return;
+
+        if(httpRequest.readyState === 4) {
+            if(httpRequest.status == 200) {
+                const json: QqInfo = JSON.parse(httpRequest.responseText);
+                resolve(json);
+            } else {
+                reject("请求错误："+ httpRequest.status)
+            }
         }
-        const json: QqInfo = JSON.parse(httpRequest.responseText);
-        resolve(json);
     };
   })
 }
